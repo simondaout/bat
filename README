@@ -1,52 +1,58 @@
+This tool is meant to do teleseismic backprojections, by forming virtual arrays from available global teleseismic stations. 
+
+
+
+
 DEPENDENCIES:
 
-ObsPy
-pyrocko/snuffler
-GMT
+ObsPy:  https://github.com/obspy/obspy/wiki
+pyrocko/snuffler: https://github.com/pyrocko/pyrocko
+GMT: http://gmt.soest.hawaii.edu
 
 
-ARRAYTOOL MANUAL AND HOW TO
+
+Manual and steps
+
 
 - FOR GENERAL OPTIONS CHOOSE PARAMETERS IN GLOBAL.CONF
 - EVENT DEPENDENT OPTIONS YOU CAN CHANGE IN THE CONFIG FILE OF THE EVENT IN THE EVENTFOLDER
 
 
+
 PROCESSING STEPS:
 
-STEP 0) PYTHON ARRAYTOOL.PY LIST: - LISTS ALL EVENTS IN THE EVENTFOLDER (CONFIG AND ORIG FILE MUST EXIST) (OPTIONAL, JUST TO SEE WHICH EVENTS ARE AVAILABLE TO PROCESS)
 
-STEP 1) PYTHON ARRAYTOOL.PY SEARCH: - SEARCH FOR EARTHQUAKES TO PROCESS IN GLOBAL CATALOGS
-                                    - SEARCHPARAMETER ARE DEFINED IN GLOBAL.CONF
+STEP 1) PYTHON ARRAYTOOL.PY SEARCH: - Search for earthquakes and thier id's.
+                                    - Searchparameter need to be defined beforehand in GLOBAL.CONF
                                     - POSSIBLE PARAMETER: - date from to
                                                      - magnitude
                                                      - catalog
                                                      - number of result
 
                             
-STEP 2) PYTHON ARRAYTOOL.PY CREATE EVENTID: - CREATES EVENTFOLDER IN EVENTS 
-                                            - USE EVENTID FROM SEARCH TO START CREATING EVENT DIRECTORY STRUCTURE
-                                                (COPIES EXAMPLE.CONFIG FROM SKELETON FOLDER)
+STEP 2) PYTHON ARRAYTOOL.PY CREATE EVENTID: - creates the event and eventfolder, use the id that given out in step 1
+
                                     
                                     
-STEP 3) PYTHON ARRAYTOOL.PY GETSTATIONS EVENTFOLDERNAME: - SEARCH FOR STATION IN IRIS AND WEBDC WITH SEARCHPARAMETERS DEFINED IN GLOBAL.CONF
+STEP 3) PYTHON ARRAYTOOL.PY GETSTATIONS EVENTFOLDERNAME: - search for stations in IRIS AND WEBDC WITH SEARCHPARAMETERS DEFINED IN GLOBAL.CONF
                                                          - POSSIBLE PARAMETER: - MINDISTANCE FROM EVENT
                                                                             - MAXDISTANCE FROM EVENT
                                                                             - NETWORKS FOR BLACKLIST
 
                                                       
 STEP 4) PYTHON ARRAYTOOL.PY GETDATA EVENTFOLDERNAME: - ACQUISITION OF ARCHIVED WAVEFORMDATA FROM IRIS AND EIDA SAVED AS SDS IN THE EVENTFOLDER
-                                                     - COPY KEYFOLDERNAME FROM STEP 3 INTO GLOBAL.CONF
+                                                     - COPY KEYFOLDERNAME FROM STEP 3 INTO GLOBAL.CONF !!!
                                                      - POSSIBLE PARAMETER: - KEYFOLDER
                                                      - DURATION OF WAVEFORMDATA
 
 
-STEP 5) PYTHON ARRAYTOOL.PY GETMETA EVENTFOLDERNAME: - CREATE FILE WITH METAINFORMATION FROM EVERY STATION WHICH HAS DATA IN SDS STRUCTURE
+STEP 5) PYTHON ARRAYTOOL.PY GETMETA EVENTFOLDERNAME: - Download stations meta info (needs to be improved)
 
 
-STEP 6) PYTHON ARRAYTOOL.PY PLOTSTATIONS EVENTFOLDERNAME: - CREATE EPICENTRAL WORLDMAPPLOT TO SHOW THE DISTRIBUTION OF THE STATIONS (OPTIONAL, JUST TO SEE WHICH STATIONDATA I HAVE)
+STEP 6) PYTHON ARRAYTOOL.PY PLOTSTATIONS EVENTFOLDERNAME: Plot Stationsmap
 
 
-STEP 7) PYTHON ARRAYTOOL.PY CLUSTER EVENTFOLDERNAME: - CLUSTERING OF STATIONS TO AUTOMATICALLY BUILD ARRAYS (gives you arrayconfiguration + overview plot)
+STEP 7) PYTHON ARRAYTOOL.PY CLUSTER EVENTFOLDERNAME: - clustering of stations to arrays (gives you arrayconfiguration + overview plot)
                                                      - CONFIGURATION PARAMETER IN THE EVENT CONFIG FILE (eventname.config)
                                                      - POSSIBLE PARAMETER:  - CLUSTERMETHOD (DISTANCE ZONING/ KMEANS)
                                                                               DISTANCE ZONING:
@@ -69,6 +75,10 @@ STEP 7) PYTHON ARRAYTOOL.PY CLUSTER EVENTFOLDERNAME: - CLUSTERING OF STATIONS TO
                                                      
 STEP 8) PYTHON ARRAYTOOL.PY PROCESS EVENTFOLDERNAME: - ARRAYPROCESSING OF THE EVENT
                                                      - CONFIGURATION PARAMETER IN THE EVENT CONFIG FILE
+                                                     - You will be asked for each array to manually pick the onset of the P-wave at the array centre in seconds
+                                                       Snuffler is needed for this
+                                                       
+                                                       Parameters:
                                                         
                                                         
                                                         tttopt = -ph P (choose phase to calculate traveltimes)
@@ -126,3 +136,11 @@ STEP 8) PYTHON ARRAYTOOL.PY PROCESS EVENTFOLDERNAME: - ARRAYPROCESSING OF THE EV
                                                         h_fc = 2 (low cut corner frequency)
                                                         h_ns = 4 ( number of filter sections)
                                                         h_zph = false ( TRUE -> zero phase filter)
+                                                        
+                                                     
+                                                        
+                                                        
+UTILITY COMMANDS:
+
+ PYTHON ARRAYTOOL.PY LIST: - Lists all already created events (CONFIG AND ORIG FILE MUST EXIST) (OPTIONAL, JUST TO SEE WHICH EVENTS ARE AVAILABLE TO PROCESS)
+
