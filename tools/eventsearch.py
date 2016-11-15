@@ -25,6 +25,25 @@ def init():
             cDict[name]=value
     return cDict
 
+def getevents(searchparameter,cat):
+    
+    tmin = util.ctimegm(searchparameter["date_min"])
+    tmax = util.ctimegm(searchparameter["date_max"])
+    
+    names = cat.get_event_names(
+        time_range=(tmin, tmax), nmax=10, magmin=float(searchparameter["magmin"]) )
+    
+    
+    print names
+    
+    assert len(names) > 0
+    ident = None
+    for name in names:
+        ev = cat.get_event(name)
+        print ev
+        
+        
+
 def parseIrisEventWebservice(searchparameter):
     
    if not searchparameter['resultlimit']:
@@ -64,79 +83,33 @@ def parseIrisEventWebservice(searchparameter):
 def GeofonEventWebservice(searchparameter):
 
     cat = catalog.Geofon()
-    
-    tmin = searchparameter["date_min"] 
-    tmax = searchparameter["date_max"] 
-    
-    names = cat.get_event_names(
-        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
-    
-    
-    print names
-    
-    assert len(names) > 0
-    ident = None
-    for name in names:
-        ev = cat.get_event(name)
-        print ev     
+    getevents(searchparameter,cat)   
     
     
 def GCMT(searchparameter):
 
     cat = catalog.GlobalCMT()
-    
-    tmin = searchparameter["date_min"] 
-    tmax = searchparameter["date_max"] 
-    
-    names = cat.get_event_names(
-        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
-    
-    
-    print names
-    
-    assert len(names) > 0
-    ident = None
-    for name in names:
-        ev = cat.get_event(name)
-        print ev
+    getevents(searchparameter,cat)   
 
 
 def USGS(searchparameter):
 
     cat = catalog.USGS()
-    
-    tmin = searchparameter["date_min"] 
-    tmax = searchparameter["date_max"] 
-    
-    names = cat.get_event_names(
-        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
-    
-    
-    print names
-    
-    assert len(names) > 0
-    ident = None
-    for name in names:
-        ev = cat.get_event(name)
-        print ev
-        
-        
-        
+    getevents(searchparameter,cat)   
 
+        
 def searchEvent(searchparameter):
-    
-    try:
-        if searchparameter['catalog'] == "USGS":
-            USGS(searchparameter)
-        if searchparameter['catalog'] == "GCMT":
-            GCMT(searchparameter)
-        if searchparameter['catalog'] == "Geofon":
-            GeofonEventWebservice(searchparameter)
-        else:   
-            parseIrisEventWebservice(searchparameter)
-            
-    except:
+    print searchparameter['catalog']    
+
+    if searchparameter['catalog'] == "GlobalUSGS":
+        USGS(searchparameter)
+    if searchparameter['catalog'] == "GlobalCMT":
+        GCMT(searchparameter)
+    if searchparameter['catalog'] == "GlobalGeofon":
+        GeofonEventWebservice(searchparameter)
+    else:   
         parseIrisEventWebservice(searchparameter)
+            
 
 if __name__ == "__main__":
     options = init()
