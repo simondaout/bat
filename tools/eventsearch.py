@@ -1,5 +1,7 @@
 from ConfigParser import SafeConfigParser
 import urllib
+from pyrocko import catalog, util
+
 
 
 class Event(object):
@@ -29,7 +31,7 @@ def parseIrisEventWebservice(searchparameter):
         searchparameter['resultlimit'] = 10
    
    url = 'http://service.iris.edu/fdsnws/event/1/query?'
-  
+   
    parameter = urllib.urlencode({
                  'catalog': searchparameter['catalog'],
                  'minmag': searchparameter['magmin'],
@@ -57,12 +59,84 @@ def parseIrisEventWebservice(searchparameter):
            print event
    else:
        print '\033[31m No event entry found \033[0m\n'
+       
+       
+def GeofonEventWebservice(searchparameter):
+
+    cat = catalog.Geofon()
     
+    tmin = searchparameter["date_min"] 
+    tmax = searchparameter["date_max"] 
+    
+    names = cat.get_event_names(
+        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
+    
+    
+    print names
+    
+    assert len(names) > 0
+    ident = None
+    for name in names:
+        ev = cat.get_event(name)
+        print ev     
+    
+    
+def GCMT(searchparameter):
+
+    cat = catalog.GlobalCMT()
+    
+    tmin = searchparameter["date_min"] 
+    tmax = searchparameter["date_max"] 
+    
+    names = cat.get_event_names(
+        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
+    
+    
+    print names
+    
+    assert len(names) > 0
+    ident = None
+    for name in names:
+        ev = cat.get_event(name)
+        print ev
+
+
+def USGS(searchparameter):
+
+    cat = catalog.USGS()
+    
+    tmin = searchparameter["date_min"] 
+    tmax = searchparameter["date_max"] 
+    
+    names = cat.get_event_names(
+        time_range=(tmin, tmax), nmax=10, magmin=searchparameter["magmin"] )
+    
+    
+    print names
+    
+    assert len(names) > 0
+    ident = None
+    for name in names:
+        ev = cat.get_event(name)
+        print ev
+        
+        
+        
 
 def searchEvent(searchparameter):
     
-    
-    parseIrisEventWebservice(searchparameter)
+    try:
+        if searchparameter['catalog'] == "USGS":
+            USGS(searchparameter)
+        if searchparameter['catalog'] == "GCMT":
+            GCMT(searchparameter)
+        if searchparameter['catalog'] == "Geofon":
+            GeofonEventWebservice(searchparameter)
+        else:   
+            parseIrisEventWebservice(searchparameter)
+            
+    except:
+        parseIrisEventWebservice(searchparameter)
 
 if __name__ == "__main__":
     options = init()
