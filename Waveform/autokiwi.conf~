@@ -1,0 +1,291 @@
+ #!/usr/bin/env python
+
+# This is a configuration file for autokiwi. 
+#
+# It is a Python script, so that autokiwi can be configured in a very flexible
+# way. In this example it contains mainly simple assignments, so that no
+# deeper knowledge of Python is required to modify it.
+#
+# All values are to be given in SI units, unless stated explicitely.
+#
+# This configuration is built from several sub-configurations, each containing
+# key-value pairs. A sub-configuration can be made to extend another one, by
+# using a "base" entry, having as value the sub-configuration to be extended.
+#
+# All intermediate directories in pathnames given in this file are created as
+# needed. Any pathname given in this configuration can be made to extend
+# other pathnames, by using python string interpolation ("%(KEY)s") like in the 
+# following example:
+#
+#     base_dir = '/kinherd',
+#     plugins_dir = '%(base_dir)s/plugins',  # evaluates to: '/kinherd/plugins'
+#
+# All string interpolation is postponed to when the path is actually needed, it
+# is not done when the configuration file is processed (so ordering, for 
+# example, does not matter).
+
+from tunguska.configurator import Config
+from tunguska.phase import Timing
+
+# Unit mulitplicators to be used in this configuration file:
+
+km = 1000.
+m = 60.
+h = 3600.
+days = 24.*h
+
+
+base_config = Config(
+    
+    # Root directory for the autokiwi directory structure.
+    # This directory is not directly used by autokiwi, but it's value is 
+    # included in other pathes in this configuration:
+    base_dir = '/src/bats',
+
+    # For each event a directory is created: 
+    event_dir = '%(base_dir)s/events/%(event_name)s',
+    event_info_path = '%(event_dir)s/event.txt',
+    
+    # Where to put and look for SEED volumes for the events:
+    seed_volume = '%(event_dir)s/data.seed',
+
+    # where to look for plugins (if needed)
+
+    plugins_dir = '%(base_dir)s/plugins',
+    plugins = ['iris_pull'],
+    fail_filename ='%(event_dir)s/FAIL',
+)
+
+from pyrocko import orthodrome
+dist = orthodrome.distance_accurate50m
+
+class Loc:
+    def __init__(self, lat, lon):
+        self.lat = lat
+        self.lon = lon
+
+
+catalog_search_config = Config(
+    base=base_config,
+    
+    # query catalog with
+    #time_range      = ('2012-05-20 00:00:00' , '2012-05-21 00:00:00'),
+    #time_range      = (('now', -30*days), ('now', -5*h)), 
+    time_range      = ('2009-01-06 00:00:00', '2009-04-07 00:00:00'),
+    #time_range      = ('2008-08-25 00:00:00', '2008-08-26 00:00:00'),
+    #time_range      = ('2008-10-05 00:00:00', '2008-10-06 00:00:00'),
+    minimum_magnitude = 6.0,
+    maximum_magnitude = 8.0,
+
+    # filter obtained results
+    #event_filter    = lambda event: dist(event,Loc(19.1300, -99.4000)) < 1000*km,
+    event_filter = lambda event: event.depth < 100*km,
+)
+
+iris_pull_config = Config(
+    base=base_config,
+    
+    query_channel_pattern = 'BH?',
+    query_rmin = 30.,
+    query_rmax = 140.,
+    
+    query_nstations_per_datarequest =200,
+    query_channel_prio = [
+        [ 'BHZ' ],
+        [ 'BHN' ],
+        [ 'BHE' ]],
+
+    preferred_networks = [],
+    preferred_virtual_networks = [],
+
+    nwanted = (500,600), 
+
+    data_dir = '%(event_dir)s/data',
+    raw_trace_path = '%(data_dir)s/raw/%(network)s.%(station)s.%(location)s.%(channel)s.mseed',
+    prepared_trace_path = '%(data_dir)s/displacement/%(network)s.%(station)s.%(location)s.%(channel)s.mseed',
+    resp_path = '%(data_dir)s/resp/%(network)s.%(station)s.%(location)s.%(channel)s.pickle',
+    stations_ok_path = '%(data_dir)s/stations.txt',
+    stations_all_path = '%(data_dir)s/stations_all.txt',
+    state_save_path = '%(data_dir)s/saved_state.pickle',
+    station_query_save_path = '%(data_dir)s/saved_station_query.pickle',
+    manual_blacklist_path = '%(data_dir)s/manual_blacklist.txt',
+    inv_response_frequencyband = (0.005, 0.01, 5.0, 10.0),
+    begin_phase = Timing('begin', -10.*m),
+    end_phase =   Timing('end', +10.*m), 
+)
+
+# Automatic data acquisition from WilberII web interface at IRIS
+
+wilber_config = Config(
+    # extend the base configuration above
+    base=base_config,  
+    
+    # Time range to consider as (start, end). 
+    # Start and end may be given in one of the following formats:
+    #     * 'YYYY-MM-DD HH:MM:SS'
+    #     * ( 'YYYY-MM-DD HH:MM:SS', OFFSET )
+    #     * ( 'now', OFFSET )
+   # time_range      = ('2012-04-01 00:00:00' , '2012-05-01 00:00:00'),
+
+    # What events to accept.
+    # Give a function returning True to accept or False to reject
+    event_filter    = lambda event: event.depth <= 100.*km and event.magnitude >= 8.0,
+
+    # Control ordering of event list (this is used as a cmp function in Python's list.sort()).
+    event_sorting   = lambda a,b: cmp(a.time, b.time),  # get newest event first
+
+    # What stations to accept
+    station_filter  = lambda station: station.dist_deg >= 0.25 and station.dist_deg < 140.,
+
+    # List of channels to accept
+    channels        = ['LH1', 'LH2', 'LHE', 'LHN', 'LHZ'],
+
+    # When a channels are available under more than one name, this decides which set to prefer.
+    redundant_channel_priorities = [ (('LH1', 'LH2'), ('LHN', 'LHE')) ],
+
+    # Virtual network to use (see Wilber web pages) (Use empty list for all)
+    vnetcodes       = [],
+
+    # Network codes to use (Use empty list for all)
+    netcodes        = [],   # if empty all are retrieved
+
+    # Time span of seismograms to download (May be limited by server)
+    before_p        = 20,    # minutes
+    after_p         = 100,  # minutes
+
+    # User name and email address to be reported to the server
+    username        = 'yourname',
+    email           = 'your.email@somewhere.org',
+)
+
+# This part of the configuration tells autokiwi how to prepare data
+
+prepare_config = Config(
+    base = base_config,
+
+    # When a channels are available under more than one name, this decides which set to prefer.
+    redundant_channel_priorities = [ (('LH1', 'LH2'), ('LHN', 'LHE')) ],
+
+    # Frequency band for restitution. This defines a cosine flanked taper, which
+    # is applied to the seismogram spectra
+    restitution_frequencyband = (0.005, 0.01, 0.5, 1.0),
+
+    # Cosine shaped fadein/fadout time applied to the traces before restitution
+    restitution_fade_time = 1./0.005,
+
+    # List of restitution methods to allow, in the order they are tried.
+    # Possible values for data downloaded through are: 'evalresp'
+    restitution_methods = [ 'evalresp' ],
+
+    # Hack to prepend zeros, when the traces would be too short
+    #restitution_pre_extend = (-1./0.002, 0.),
+
+    # Cut seismograms to given span. The times are offsets to given phases,
+    # the phases are defined in $KIWI_HOME/aux/phases.
+    cut_span = [Timing(('P','Pn'), -3*m), Timing(('S', 'Sn'), +3.*m)], 
+
+    # Exclude traces with aplitudes larger than this value.
+    displacement_limit = 1.,
+
+    # If present, prepare data to be used with this Green's function
+    # database. This mainly sets the sampling rate to which the traces are downsampled.
+    gfdb_path = '/home/andreas/Tibet/global_2s/db',
+
+    # Exclude traces from stations which are outside of this margin from the
+    # ends of the database. This is done so that stations near to the ends of
+    # the database do not cause problems for extended sources.
+    gfdb_margin = 100*km,
+
+    # If no GFDB is given, use the following target sampling rate:
+    deltat = 2.0,
+
+    # Defines component projections. Using the following setup tells autokiwi to
+    # project raw traces to east-north-up orientation. The channel names given
+    # are the input and output channel names to be used.
+    projection_functions = [ 
+        lambda station:
+            station.projection_to_enu(('LH1','LH2','LHZ'), ('E','N','Z2')),
+        lambda station:
+            station.projection_to_enu(('LHE','LHN','LHZ'), ('E','N','Z')),
+    ],
+
+    # Defines rotations of horizontal components. Using the following setup 
+    # tells autokiwi to rotate to radial(away)-transversal(right) components.
+    rotation_functions   = [ lambda station: station.rotation_ne_to_rt(('N', 'E'), ('R', 'T')) ],
+)
+
+# Preprocessing configuration specific to setup an event directory for use with 
+# Kiwi inversion scripts.
+
+kiwi_config = Config(
+    base=prepare_config,
+
+    # Shift traces so that a time of zero is at the preliminary time origin of
+    # the event. (The other possibility is 'system').
+    trace_time_zero = 'system',
+
+    # Scale traces by this factor 
+    trace_factor = 1.0e9,
+    
+    
+    # List of channels to be selected for the Kiwi inversion
+    wanted_channels = ['Z', 'R', 'T'],
+
+    # How to rename the channels for Kiwi internal
+    kiwi_component_map = {
+        'Z': 'u', 
+        'N': 'n',
+        'E': 'e',
+        'T': 'r',
+        'R': 'a'
+    },
+
+    # Each station can be made to appear multiple times, so that it is 
+    # possible to treat different phases as individual datasets.
+    # This value defines how many stations should be made out of each.
+    nsets = 2,
+    station_splitting = ['u', 'r'],
+
+    # Files from this directory are copied into the Kiwi main directory
+    skeleton_dir = '%(base_dir)s/skeleton',
+
+    # Main directory for the Kiwi inversion
+    main_dir = '%(event_dir)s/kiwi',
+
+    # Where to put the data for the Kiwi inversion
+    data_dir = '%(main_dir)s/data',
+
+    work_dir = '%(event_dir)s/kiwi/work',
+    report_dir = '%(event_dir)s/kiwi/report',
+    
+    # Filenames to be used
+    receivers_path = '%(data_dir)s/receivers.table',
+    stations_path = '%(data_dir)s/stations.txt',
+    source_origin_path = '%(data_dir)s/source-origin.table',
+    reference_time_path = '%(data_dir)s/reference-time.txt',
+    event_info_path = '%(data_dir)s/event.txt',
+    displacement_trace_path = '%(data_dir)s/reference-%(ireceiver)s-%(component)s.mseed',
+    raw_trace_path = '%(data_dir)s/raw.%(network)s.%(station)s.%(location)s.%(channel)s.mseed',
+    
+    # Command executed in main_dir to run the processing
+    processing_command = ['./kiwi', 'work', '-', 'momenttuner_final'],
+    
+    # command executed in main_dir to generate the report
+    report_command = ['report_and_convert'],
+        
+)
+
+post_config = Config(
+    base = kiwi_config,
+
+    # Directory of results to be posted
+    source_dir = '%(main_dir)s/report',
+
+    # Where to put the results with rsync
+    target_host = 'kinherdwsrsync',
+    target_dir = '/srv/kinherd/www/events/%(event_name_catalog)s',
+
+    # This command is executed after copying the files with rsync
+    trigger_command = [ 'ssh', 'kinherdwsimport', '/srv/kinherd/web/bin/kinherdweb-import', '%(target_dir)s' ],
+)
+

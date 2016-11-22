@@ -65,7 +65,7 @@ def printMsg (station, text=' ') :
 
 class Station(object):
     '''
-    Class for storing station information
+    Class for storing station informationasdasd
     
     :type net: str
     :param net: Network of station
