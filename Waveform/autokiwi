@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import logging, sys, os, time, glob, re
 
-from pyrocko import wilber, util, model, catalog, weeding
-
+from pyrocko import util, model, catalog, weeding
+import wilber
 from optparse import OptionParser
 from tunguska import prepare, sc_edump, configurator
 
